@@ -92,6 +92,10 @@ Next.js 16 · React 19 · TypeScript · Tailwind CSS v4 · Framer Motion
 
 The pre-flight angle, and how it fits alongside the post-hoc tools:
 
+- [**See the prompt before you ship it**](https://ferhatatagun.com/blog/see-the-prompt-before-you-ship-it)
+  — why token cost, context-window position, and prompt-caching layout
+  are all knowable from the prompt alone, with a worked example where
+  two semantically equivalent prompts had a 6.3× input-length difference.
 - [**What I learned shipping four open-source Claude dev-tools in
   two weekends**](https://ferhatatagun.com/blog/four-tools-in-two-weekends)
   — the meta-narrative on the suite. context-lens is the natural

@@ -5,7 +5,7 @@ import "./globals.css";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-const SITE = "https://context-lens.vercel.app";
+const SITE = "https://context-lens-sigma.vercel.app";
 const DESCRIPTION =
   "Paste a Claude prompt — see how it tokenizes, where caching boundaries are, and what each call will cost. Pre-flight token visualization, browser-only, BYOK.";
 

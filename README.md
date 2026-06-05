@@ -4,7 +4,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/ferhatatagun/context-lens?style=flat-square&color=8b5cf6&logo=github)](https://github.com/ferhatatagun/context-lens/stargazers)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](#)
 [![BYOK · No backend](https://img.shields.io/badge/BYOK-no_backend-f472b6?style=flat-square)](#)
-[![Live demo](https://img.shields.io/badge/live-context--lens.vercel.app-8b5cf6?style=flat-square)](https://context-lens.vercel.app)
+[![Live demo](https://img.shields.io/badge/live-context--lens--sigma.vercel.app-8b5cf6?style=flat-square)](https://context-lens-sigma.vercel.app)
 
 **See a Claude prompt before you ship it.**
 
@@ -13,7 +13,7 @@ Claude will see, where in the 200K context window you sit, and what
 the call will cost on Sonnet, Haiku, or Opus. No backend, no key
 required for the heuristic mode, BYOK for the API-accurate count.
 
-**[Live → context-lens.vercel.app](https://context-lens.vercel.app)**
+**[Live → context-lens-sigma.vercel.app](https://context-lens-sigma.vercel.app)**
 
 ![context-lens](docs/preview.png)
 

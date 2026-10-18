@@ -58,18 +58,3 @@ async function readError(res: Response): Promise<string> {
   if (res.status === 429) return "429 · Rate limited — wait a moment.";
   return `${res.status} · Request failed.`;
 }
-
-export function modelTier(model: string): "opus" | "sonnet" | "haiku" {
-  const m = model.toLowerCase();
-  if (m.includes("opus")) return "opus";
-  if (m.includes("haiku")) return "haiku";
-  return "sonnet";
-}
-
-export const DEFAULT_MODELS = [
-  { id: "claude-sonnet-4-5", label: "Sonnet 4.5", tier: "sonnet" as const },
-  { id: "claude-haiku-4-5", label: "Haiku 4.5", tier: "haiku" as const },
-  { id: "claude-opus-4-5", label: "Opus 4.5", tier: "opus" as const },
-];
-
-export const MODEL_CONTEXT_WINDOW = 200_000;

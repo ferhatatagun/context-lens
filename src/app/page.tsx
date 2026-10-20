@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { countTokens } from "@/lib/anthropic";
+import { MODEL_OPTIONS, QUICK_PICKS, modelLabel, priceFor, resolveModel } from "@/lib/models";
 import {
-  countTokens,
-  DEFAULT_MODELS,
-  MODEL_CONTEXT_WINDOW,
-  modelTier,
-} from "@/lib/anthropic";
-import { costFor, fmtUSD, heuristicTokenCount } from "@/lib/pricing";
+  CHARS_PER_TOKEN,
+  NEW_TOKENIZER_FACTOR,
+  costFor,
+  fmtUSD,
+  heuristicTokenCount,
+} from "@/lib/pricing";
 import { clearApiKey, getApiKey, setApiKey } from "@/lib/storage";
 import KeyDialog from "@/components/KeyDialog";
 
@@ -34,7 +36,7 @@ const SAMPLE_USER = `Review this diff and return only the JSON array described i
 export default function Home() {
   const [system, setSystem] = useState(SAMPLE_SYSTEM);
   const [user, setUser] = useState(SAMPLE_USER);
-  const [model, setModel] = useState(DEFAULT_MODELS[0].id);
+  const [model, setModel] = useState(QUICK_PICKS[0].id);
   const [estimatedOutput, setEstimatedOutput] = useState(400);
   const [cached, setCached] = useState(false);
 
@@ -51,24 +53,24 @@ export default function Home() {
 
   /** Cheap heuristic — always available, updates as you type */
   const heuristic = useMemo(() => {
-    const sys = heuristicTokenCount(system);
-    const usr = heuristicTokenCount(user);
+    const sys = heuristicTokenCount(system, model);
+    const usr = heuristicTokenCount(user, model);
     return { system: sys, user: usr, total: sys + usr };
-  }, [system, user]);
+  }, [system, user, model]);
 
   /** Pick which count to use for cost: API count if available, else heuristic */
   const inputTokens = tokenCount ?? heuristic.total;
-  const tier = modelTier(model);
-  const cost = costFor(tier, {
+  const { model: info } = resolveModel(model);
+  const cost = costFor(model, {
     input: cached ? 0 : inputTokens,
     cacheRead: cached ? inputTokens : 0,
     output: estimatedOutput,
   });
 
-  /** Position within the model's 200K context window */
+  /** Position within the selected model's context window */
   const windowPosition = Math.min(
     100,
-    ((inputTokens + estimatedOutput) / MODEL_CONTEXT_WINDOW) * 100,
+    ((inputTokens + estimatedOutput) / info.contextWindow) * 100,
   );
 
   async function callCountTokens() {
@@ -173,7 +175,7 @@ export default function Home() {
                   onChange={(e) => setModel(e.target.value)}
                   className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200"
                 >
-                  {DEFAULT_MODELS.map((m) => (
+                  {MODEL_OPTIONS.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.label}
                     </option>
@@ -214,7 +216,9 @@ export default function Home() {
               <span className="text-xs text-slate-500">
                 {usingApi
                   ? "Showing API-accurate count"
-                  : "Showing heuristic (~3.7 chars/token). Use the API for the real number."}
+                  : `Showing heuristic (~${CHARS_PER_TOKEN} chars/token${
+                      info.newTokenizer ? `, ×${NEW_TOKENIZER_FACTOR} for this model's newer tokenizer` : ""
+                    }). Use the API for the real number.`}
               </span>
             </div>
 
@@ -234,8 +238,9 @@ export default function Home() {
               cost={cost}
               usingApi={usingApi}
               cached={cached}
-              tier={tier}
-              model={DEFAULT_MODELS.find((m) => m.id === model)?.label ?? model}
+              windowSize={info.contextWindow}
+              rates={priceFor(info, inputTokens)}
+              model={modelLabel(model)}
             />
             <SuitePanel />
           </aside>
@@ -318,7 +323,8 @@ function XRayPanel({
   cost,
   usingApi,
   cached,
-  tier,
+  windowSize,
+  rates,
   model,
 }: {
   inputTokens: number;
@@ -327,7 +333,8 @@ function XRayPanel({
   cost: ReturnType<typeof costFor>;
   usingApi: boolean;
   cached: boolean;
-  tier: "opus" | "sonnet" | "haiku";
+  windowSize: number;
+  rates: ReturnType<typeof priceFor>;
   model: string;
 }) {
   return (
@@ -359,7 +366,7 @@ function XRayPanel({
       <div className="mb-5">
         <div className="flex items-center justify-between text-xs mb-1">
           <span className="text-slate-400">Context window</span>
-          <span className="font-mono text-slate-300">{windowPosition.toFixed(1)}% of 200K</span>
+          <span className="font-mono text-slate-300">{windowPosition.toFixed(1)}% of {fmtWindow(windowSize)}</span>
         </div>
         <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
           <motion.div
@@ -381,7 +388,9 @@ function XRayPanel({
       <div className="border-t border-slate-800 pt-4">
         <div className="flex items-center justify-between text-xs mb-2">
           <span className="text-slate-400">Cost on {model}</span>
-          <span className="text-slate-500 uppercase font-mono">{tier}</span>
+          <span className="text-slate-500 font-mono">
+            ${rates.input} / ${rates.output} per MTok
+          </span>
         </div>
         <div className="space-y-1.5 text-sm">
           {!cached ? (
@@ -402,6 +411,10 @@ function XRayPanel({
       </div>
     </motion.div>
   );
+}
+
+function fmtWindow(tokens: number): string {
+  return tokens >= 1_000_000 ? `${tokens / 1_000_000}M` : `${Math.round(tokens / 1_000)}K`;
 }
 
 function Row({

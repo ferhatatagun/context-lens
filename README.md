@@ -9,8 +9,8 @@
 **See a Claude prompt before you ship it.**
 
 Paste a system prompt and a user message, see exactly how many tokens
-Claude will see, where in the 200K context window you sit, and what
-the call will cost on Sonnet, Haiku, or Opus. No backend, no key
+Claude will see, where in the model's context window you sit, and what
+the call will cost on Sonnet, Haiku, Opus, or Fable. No backend, no key
 required for the heuristic mode, BYOK for the API-accurate count.
 
 **[Live → context-lens-sigma.vercel.app](https://context-lens-sigma.vercel.app)**
@@ -31,10 +31,11 @@ context-lens is the pre-flight check:
 - **How many tokens am I about to send?** Down to the exact count if
   you have an API key (uses the `count_tokens` endpoint), or a fast
   ~3.7-chars/token heuristic if you don't.
-- **Where in the context window am I?** A live bar that warns when
-  you're near the 200K limit.
-- **What will this cost?** Per call and per 1,000 calls, on the model
-  tier you select, accounting for whether the input is cache-read.
+- **Where in the context window am I?** A live bar against the selected
+  model's real window (1M on the 5.x models and Sonnet/Opus 4.6, 200K on
+  Haiku 4.5), colour-coded as you approach the limit.
+- **What will this cost?** Per call and per 1,000 calls, at the selected
+  model's own rates, accounting for whether the input is cache-read.
 - **Where would prompt-caching boundaries sit?** Implied by the
   system / message split.
 
@@ -48,11 +49,15 @@ you deploy it to a thousand users. That's the whole pitch.
 - "Count exact (API)" button: calls
   [`/v1/messages/count_tokens`](https://docs.anthropic.com/en/api/messages-count-tokens)
   for the accurate number.
-- Model picker (Sonnet 4.5, Haiku 4.5, Opus 4.5) — switches the
-  pricing tier and cost estimate.
+- Model picker (Fable 5.1, Opus 5.5 / 5, Sonnet 5.5 / 4.6, Haiku 5.5 / 4.5)
+  — switches the per-model pricing, context window and tokenizer scaling.
+  Prices live in `src/lib/models.ts`, per model rather than per tier (they
+  no longer line up: Opus 5.5 is $4/$20, Haiku 5.5 $0.10/$0.50 up to 100K
+  prompt tokens).
 - Estimated output tokens input — controls the output-side cost.
 - "Assume input is cache-read" toggle — flips input pricing from
-  `1.0×` to `0.1×` so you can model the steady-state cost of a
+  `1.0×` to the model's cache-read rate (`0.1×`; `0.05×` on Opus 5.5,
+  `0.025×` on Fable 5.1) so you can model the steady-state cost of a
   cached prompt vs. its cold start.
 - X-ray sidebar: tokens, context-window position, per-call and
   per-1K cost breakdown.

@@ -1,37 +1,27 @@
-// USD per 1M tokens, by model tier. Reflects Anthropic's published pricing.
-// Same source as the rest of the dev-tool suite.
-export interface Price {
-  input: number;
-  cacheRead: number;
-  cacheWrite5m: number;
-  output: number;
-}
+import { priceFor, resolveModel, type Price } from "./models";
 
-export const TIERS: Record<"opus" | "sonnet" | "haiku", Price> = {
-  opus: { input: 15, cacheRead: 1.5, cacheWrite5m: 18.75, output: 75 },
-  sonnet: { input: 3, cacheRead: 0.3, cacheWrite5m: 3.75, output: 15 },
-  haiku: { input: 1, cacheRead: 0.1, cacheWrite5m: 1.25, output: 5 },
-};
+export type { Price };
 
-export const TIER_LABEL: Record<"opus" | "sonnet" | "haiku", string> = {
-  opus: "Opus",
-  sonnet: "Sonnet",
-  haiku: "Haiku",
-};
+/** Characters per token the heuristic assumes (older tokenizer, English). */
+export const CHARS_PER_TOKEN = 3.7;
+/** Newer tokenizers count the same text as ~30% more tokens. */
+export const NEW_TOKENIZER_FACTOR = 1.3;
 
 /** Cheap text-based heuristic when the user has no API key.
  *  Rough rule for Claude/Anthropic-style BPE: ~3.7 chars per token in English,
- *  more in Turkish/CJK. Returns a single number for the whole input. */
-export function heuristicTokenCount(text: string): number {
+ *  more in Turkish/CJK, scaled up for models on the newer tokenizer.
+ *  Returns a single number for the whole input. */
+export function heuristicTokenCount(text: string, model?: string): number {
   if (!text) return 0;
   const trimmed = text.trim();
   if (!trimmed) return 0;
   // Mix of char-based and word-based to handle code, English, Turkish, etc.
   const chars = trimmed.length;
   const words = trimmed.split(/\s+/).length;
-  const byChars = chars / 3.7;
+  const byChars = chars / CHARS_PER_TOKEN;
   const byWords = words * 1.35;
-  return Math.round((byChars + byWords) / 2);
+  const factor = model && resolveModel(model).model.newTokenizer ? NEW_TOKENIZER_FACTOR : 1;
+  return Math.round(((byChars + byWords) / 2) * factor);
 }
 
 export interface CostEstimate {
@@ -43,7 +33,7 @@ export interface CostEstimate {
 }
 
 export function costFor(
-  tier: keyof typeof TIERS,
+  model: string,
   tokens: {
     input?: number;
     cacheRead?: number;
@@ -51,7 +41,8 @@ export function costFor(
     output?: number;
   },
 ): CostEstimate {
-  const p = TIERS[tier];
+  const promptTokens = (tokens.input ?? 0) + (tokens.cacheRead ?? 0) + (tokens.cacheWrite ?? 0);
+  const p = priceFor(resolveModel(model).model, promptTokens);
   const uncachedInput = ((tokens.input ?? 0) * p.input) / 1_000_000;
   const cachedRead = ((tokens.cacheRead ?? 0) * p.cacheRead) / 1_000_000;
   const cacheWrite = ((tokens.cacheWrite ?? 0) * p.cacheWrite5m) / 1_000_000;

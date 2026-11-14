@@ -64,6 +64,10 @@ you deploy it to a thousand users. That's the whole pitch.
 - Suite panel: deep-links to the sibling tools without leaving the
   page.
 
+## Use it as a skill
+
+The same pre-flight analysis ships as an agent skill, `skills/prompt-preflight/`. Give the agent a system prompt and a user message and it estimates input tokens, context-window position, cost per call and per 1,000 calls, and checks where prompt caching would hit. Copy that folder to `~/.claude/skills/` (Claude Code) or get it on [Agensi](https://agensi.io/skills/prompt-preflight-tokens-window-and-cost-before-you-ship).
+
 ## How
 
 ```bash
